@@ -35,7 +35,7 @@ async def run_repl(thread_id: str | None = None) -> None:
         if question in ("", "exit", "quit"):
             break
 
-        result = agent.invoke({"messages": [("user", question)]}, config)
+        result = await agent.ainvoke({"messages": [("user", question)]}, config)
         print(result["messages"][-1].content)
 
 
