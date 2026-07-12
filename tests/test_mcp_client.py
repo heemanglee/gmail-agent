@@ -55,6 +55,9 @@ def test_stdio_connection_uses_pinned_package_and_token_credentials(tmp_path):
     assert gmail["env"]["REFRESH_TOKEN"] == "tok-refresh"
     # 프라이버시 기본값: 분석 수집 비활성화.
     assert gmail["env"]["TELEMETRY_ENABLED"] == "false"
+    # 도구 호출마다 새 stdio 세션이 생겨도 HTTP 보조 서버가 포트 충돌하지 않도록
+    # OS가 임시 포트를 할당하게 한다.
+    assert gmail["env"]["PORT"] == "0"
 
 
 def test_explicit_credentials_take_precedence_over_token_file(tmp_path):
