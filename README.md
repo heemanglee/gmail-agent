@@ -48,7 +48,7 @@ cp .env.example .env
 | `OPENAI_API_KEY` | ✅ | ChatOpenAI API 키 |
 | `OPENAI_MODEL` | | LLM 모델명 (기본: `gpt-5-nano`) |
 | `GMAIL_MCP_SERVER_URL` | ✅ | Gmail MCP 서버 주소 (Streamable HTTP) |
-| `DATABASE_URL` | | Postgres 체크포인터 (개발 시 미설정 → InMemorySaver) |
+| `DATABASE_URL` | ✅ | Postgres 체크포인터 접속 URL (`.env` 에서 주입, 소스에 기본값 없음) |
 
 필수 값이 누락되면 앱 시작 시 pydantic 이 어떤 값이 빠졌는지 즉시 알려준다(fail-fast).
 

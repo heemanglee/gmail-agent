@@ -3,6 +3,7 @@
 import importlib
 
 import pytest
+from pydantic import ValidationError
 
 
 @pytest.fixture
@@ -13,10 +14,12 @@ def config_module(monkeypatch):
     독립적으로 초기 상태에서 시작하도록 모듈을 reload 하고 캐시를 비운다.
     """
 
+    # 실제 env 변수는 `.env` 파일보다 우선하므로, 테스트가 `.env` 값에 의존하지
+    # 않도록 필요한 값을 모두 주입한다.
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("GMAIL_MCP_SERVER_URL", "http://localhost:8000/mcp")
-    # `.env` 파일이 존재하더라도 테스트가 그 값에 의존하지 않도록 무시시킨다.
     monkeypatch.setenv("OPENAI_MODEL", "test-model")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://test:test@localhost:5432/testdb")
 
     import app.core.config as config
 
@@ -33,13 +36,15 @@ def test_loads_values_from_environment(config_module):
     assert settings.OPENAI_API_KEY == "test-key"
     assert settings.OPENAI_MODEL == "test-model"
     assert settings.GMAIL_MCP_SERVER_URL == "http://localhost:8000/mcp"
+    assert settings.DATABASE_URL == "postgresql://test:test@localhost:5432/testdb"
 
 
-def test_database_url_defaults_to_none(config_module, monkeypatch):
+def test_database_url_is_required(config_module, monkeypatch):
+    # 소스에 기본값이 없으므로 env(.env 포함) 어디에도 없으면 검증 오류가 나야 한다.
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    config_module.get_settings.cache_clear()
 
-    assert config_module.get_settings().DATABASE_URL is None
+    with pytest.raises(ValidationError):
+        config_module.Settings(_env_file=None)
 
 
 def test_get_settings_returns_singleton(config_module):

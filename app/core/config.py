@@ -33,9 +33,8 @@ class Settings(BaseSettings):
     # --- Gmail MCP 서버 (Streamable HTTP) ---
     GMAIL_MCP_SERVER_URL: str
 
-    # --- 상태 지속성 (PostgresSaver, 프로덕션) ---
-    # 개발 환경(InMemorySaver)에서는 설정하지 않아도 되므로 선택값으로 둔다.
-    DATABASE_URL: str | None = None
+    # --- 상태 지속성 (PostgresSaver) ---
+    DATABASE_URL: str
 
 
 @lru_cache(maxsize=1)
