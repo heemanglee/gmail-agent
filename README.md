@@ -54,6 +54,12 @@ cp .env.example .env
 
 > `.env` 및 OAuth credential/token 파일은 git 에 커밋되지 않는다 (NFR-1.5, [.gitignore](.gitignore) 참고).
 
+### 4. Gmail OAuth 자격증명 구성
+
+Gmail 접근은 서드파티 Gmail MCP 서버가 `gmail.modify` **단일 스코프**로 담당한다. Google Cloud OAuth 클라이언트 발급부터 토큰 획득·파일 보호까지의 절차는 별도 가이드를 참고한다.
+
+📄 [docs/mcp/gmail-oauth-setup.md](docs/mcp/gmail-oauth-setup.md)
+
 ## 실행 / 테스트
 
 ```bash
@@ -75,7 +81,9 @@ gmail-agent/
 ├─ tests/
 │  └─ test_config.py     # 설정 로딩·싱글톤 검증
 ├─ docs/
-│  └─ PRD.md             # 요구사항 문서
+│  ├─ PRD.md             # 요구사항 문서
+│  └─ mcp/
+│     └─ gmail-oauth-setup.md  # Gmail OAuth 자격증명 구성 가이드
 ├─ main.py               # 앱 진입점
 ├─ .env.example          # 환경변수 템플릿
 ├─ pyproject.toml        # 프로젝트 메타·의존성
