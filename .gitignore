@@ -1,0 +1,22 @@
+# --- 환경 변수 / 시크릿 ---
+.env
+.env.*
+!.env.example
+
+# --- OAuth 자격증명 · 토큰 (NFR-1.5: 저장소에 커밋 금지) ---
+credentials.json
+client_secret*.json
+token.json
+token.pickle
+*.token
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- uv / 가상환경 ---
+.venv/
