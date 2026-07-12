@@ -9,7 +9,9 @@
 """
 
 from functools import lru_cache
+from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,11 +32,36 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     OPENAI_MODEL: str = "gpt-5-nano"
 
-    # --- Gmail MCP 서버 (Streamable HTTP) ---
-    GMAIL_MCP_SERVER_URL: str
+    # --- Gmail MCP 서버 ---
+    # 로컬 개발은 stdio(우리 앱이 npx 로 서버를 자식 프로세스로 실행),
+    # 원격/프로덕션은 streamable_http(사이드카/별도 서비스에 HTTP 연결). (PRD §7.3)
+    GMAIL_MCP_TRANSPORT: Literal["stdio", "streamable_http"] = "stdio"
+    # streamable_http 일 때만 사용. stdio 에서는 불필요하므로 optional.
+    GMAIL_MCP_SERVER_URL: str | None = None
+    # 버전 고정: 서드파티 서버 스키마 변경 리스크 대응 (Issue #3). stdio 실행 대상.
+    GMAIL_MCP_PACKAGE: str = "@shinzolabs/gmail-mcp@1.7.4"
+
+    # --- Gmail OAuth 자격증명 (shinzo-labs 서버에 env 로 주입) ---
+    # 명시 주입(프로덕션/ECS Secrets 권장). 셋 다 비어 있으면 client 계층이
+    # GMAIL_TOKEN_PATH(로컬 token.json)에서 추출해 보완한다.
+    GMAIL_CLIENT_ID: str | None = None
+    GMAIL_CLIENT_SECRET: str | None = None
+    GMAIL_REFRESH_TOKEN: str | None = None
+    # 로컬 개발용 자격증명 fallback 소스 (Step 2 산출물, gmail.modify 토큰).
+    GMAIL_TOKEN_PATH: str = "token.json"
 
     # --- 상태 지속성 (PostgresSaver) ---
     DATABASE_URL: str
+
+    @model_validator(mode="after")
+    def _require_url_for_http(self) -> "Settings":
+        """streamable_http transport 는 서버 URL 이 반드시 있어야 한다."""
+
+        if self.GMAIL_MCP_TRANSPORT == "streamable_http" and not self.GMAIL_MCP_SERVER_URL:
+            raise ValueError(
+                "GMAIL_MCP_TRANSPORT=streamable_http 이면 GMAIL_MCP_SERVER_URL 이 필요합니다."
+            )
+        return self
 
 
 @lru_cache(maxsize=1)

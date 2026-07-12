@@ -28,17 +28,21 @@ SYSTEM_PROMPT = (
 def build_agent(
     model: BaseChatModel | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
+    tools: list | None = None,
 ) -> CompiledStateGraph:
-    """도구를 바인딩하지 않은 최소 에이전트를 구성해 반환한다.
+    """에이전트를 구성해 반환한다.
 
     Args:
         model: 사용할 LLM. 생략하면 `settings` 기반 `ChatOpenAI` 를 생성한다.
             (테스트는 fake chat model 을 주입한다.)
         checkpointer: 상태 지속성 계층. 생략하면 개발용 `InMemorySaver` 를 쓴다.
             (프로덕션 `PostgresSaver` 전환은 #10.)
+        tools: 바인딩할 도구 목록. 생략하면 도구 없이 구성한다(질문 응답 전용 뼈대, #16).
+            Gmail 도구는 `app.mcp.client.load_gmail_tools()` 로 읽기 + trash 만
+            필터링해 주입한다 (#3). trash 도구 HITL 승인 게이팅은 #4 범위.
 
     Returns:
-        thread_id 단위로 상태가 유지되는, 도구 없는 컴파일된 에이전트 그래프.
+        thread_id 단위로 상태가 유지되는 컴파일된 에이전트 그래프.
     """
 
     if model is None:
@@ -58,7 +62,7 @@ def build_agent(
 
     return create_agent(
         model,
-        tools=[],
+        tools=tools or [],
         system_prompt=SYSTEM_PROMPT,
         checkpointer=checkpointer,
     )
