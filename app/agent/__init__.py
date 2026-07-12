@@ -1,5 +1,5 @@
 """LangGraph 에이전트 계층.
 
-`create_agent` 로 ChatOpenAI 기반 에이전트를 구성하고, trash 도구에 대해서만
-`HumanInTheLoopMiddleware` 로 승인 게이팅을 적용한다. (PRD §4, FR-3)
+`create_agent`로 ChatOpenAI 기반 에이전트를 구성한다. Step 4에서는 읽기 도구만
+연결하며, trash 도구의 `HumanInTheLoopMiddleware` 승인 게이팅은 Issue #6에서 적용한다.
 """

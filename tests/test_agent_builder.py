@@ -7,14 +7,16 @@ thread 상태 유지)이다. fake model 은 프레임워크가 무엇을 모델�
 관찰하기 위한 프로브로만 쓴다.
 """
 
+import asyncio
 from itertools import cycle
 
 import pytest
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.tools import tool
 from pydantic import PrivateAttr
 
-from app.agent.builder import SYSTEM_PROMPT, build_agent
+from app.agent.builder import SYSTEM_PROMPT, build_agent, build_gmail_agent
 
 
 class RecordingFakeModel(GenericFakeChatModel):
@@ -36,6 +38,34 @@ class RecordingFakeModel(GenericFakeChatModel):
         return super()._generate(
             messages, stop=stop, run_manager=run_manager, **kwargs
         )
+
+
+class ToolCallingFakeModel(RecordingFakeModel):
+    """도구 바인딩과 호출 흐름을 검증할 수 있는 fake chat model."""
+
+    _bound_tools: list = PrivateAttr(default_factory=list)
+
+    @property
+    def bound_tools(self) -> list:
+        return self._bound_tools
+
+    def bind_tools(self, tools, **kwargs):
+        self._bound_tools = list(tools)
+        return self
+
+
+@tool
+def list_messages(query: str) -> str:
+    """Search Gmail messages by query."""
+
+    return f"검색 결과: {query}"
+
+
+@tool
+def trash_message(message_id: str) -> str:
+    """Move a Gmail message to trash."""
+
+    return f"휴지통 이동: {message_id}"
 
 
 def _fake(answer: str = "고정 응답") -> RecordingFakeModel:
@@ -71,6 +101,52 @@ def test_no_tools_node_in_graph():
     agent = build_agent(model=_fake())
 
     assert "tools" not in agent.nodes
+
+
+def test_build_gmail_agent_binds_read_tools_and_completes_a_tool_call():
+    """Gmail 도구 중 읽기 도구만 바인딩하고 호출 결과로 답변한다."""
+
+    model = ToolCallingFakeModel(
+        messages=cycle(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "list_messages",
+                            "args": {"query": "from:alice"},
+                            "id": "call-1",
+                        }
+                    ],
+                ),
+                AIMessage(content="Alice에게서 온 메일을 찾았습니다."),
+            ]
+        )
+    )
+    loaded = False
+
+    async def load_tools():
+        nonlocal loaded
+        loaded = True
+        return [list_messages, trash_message]
+
+    agent = asyncio.run(build_gmail_agent(model=model, tool_loader=load_tools))
+    result = agent.invoke(
+        {"messages": [("user", "Alice 메일을 찾아줘")]},
+        {"configurable": {"thread_id": "t-tools"}},
+    )
+
+    assert loaded is True
+    assert "tools" in agent.nodes
+    assert [tool.name for tool in model.bound_tools] == ["list_messages"]
+    assert "trash_message" not in [tool.name for tool in model.bound_tools]
+    assert [message.type for message in result["messages"]] == [
+        "human",
+        "ai",
+        "tool",
+        "ai",
+    ]
+    assert result["messages"][-1].content == "Alice에게서 온 메일을 찾았습니다."
 
 
 def test_same_thread_id_preserves_context():

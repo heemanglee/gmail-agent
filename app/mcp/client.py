@@ -87,8 +87,11 @@ def build_connections(cfg: Settings = settings) -> dict[str, dict[str, Any]]:
             "gmail": {
                 "command": "npx",
                 "args": ["-y", cfg.GMAIL_MCP_PACKAGE],
+                # 이 서버는 stdio와 함께 HTTP 보조 서버도 기동한다. MCP 어댑터가 도구
+                # 호출마다 새 stdio 세션을 만들므로, OS가 매번 충돌 없는 임시 포트를
+                # 배정하도록 한다.
                 # 자격증명 + 분석수집 비활성화(프라이버시 기본값).
-                "env": {**creds, "TELEMETRY_ENABLED": "false"},
+                "env": {**creds, "PORT": "0", "TELEMETRY_ENABLED": "false"},
                 "transport": "stdio",
             }
         }
